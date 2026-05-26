@@ -1,7 +1,7 @@
 #requires -version 5.1
 <#
 .SYNOPSIS
-  Full STORIS → Shopify sync. Run weekly via Windows Task Scheduler.
+  Full STORIS -> Shopify sync. Run weekly via Windows Task Scheduler.
 .DESCRIPTION
   Refreshes both catalogs, rebuilds the fuzzy mapping, then writes metafields
   for HIGH-confidence matches. Each step's stdout/stderr is appended to a
@@ -34,7 +34,7 @@ function Invoke-Step {
   & $exe tsx @Args 2>&1 | Tee-Object -FilePath $LogFile -Append
   if ($LASTEXITCODE -ne 0) {
     Write-Log "FAILED $Label (exit $LASTEXITCODE)"
-    throw "$Label failed (exit $LASTEXITCODE) — see $LogFile"
+    throw "$Label failed (exit $LASTEXITCODE) - see $LogFile"
   }
   Write-Log "OK    $Label"
 }

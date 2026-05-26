@@ -3,7 +3,7 @@
 .SYNOPSIS
   Registers the QHF Storis-Shopify weekly sync as a Windows Scheduled Task.
 .DESCRIPTION
-  Runs weekly-sync.ps1 every Sunday at 03:00 under the current user. Idempotent —
+  Runs weekly-sync.ps1 every Sunday at 03:00 under the current user. Idempotent;
   re-registering replaces any existing task with the same name. Run once.
 .PARAMETER TaskName
   Name of the scheduled task in Task Scheduler. Default: "QHF Storis-Shopify Weekly Sync".
@@ -39,8 +39,8 @@ $Settings = New-ScheduledTaskSettingsSet `
   -RunOnlyIfNetworkAvailable `
   -ExecutionTimeLimit (New-TimeSpan -Hours 2)
 
-# Register as current user, no elevation needed — sync only touches local files +
-# HTTPS to api.storis.com / *.myshopify.com.
+# Register as current user, no elevation needed (sync only touches local files +
+# HTTPS to api.storis.com / *.myshopify.com).
 $Principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Limited
 
 $Existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
