@@ -9,6 +9,10 @@ export type SyncOptions = {
   limit?: number;
   mappingPath: string;
   minConfidence: Confidence;
+  // Score floor (matcher score 0..~1.5). Applied on top of minConfidence. Useful
+  // to expand the auto-sync set into MEDIUM while still filtering out low-quality
+  // tail matches. Default 0 (no floor).
+  minScore: number;
   // Optional path to mapping/storis-catalog.csv. When set, skip live STORIS fetch
   // and iterate the cached export instead — useful for fast re-runs.
   fromCsv?: string;
@@ -21,6 +25,7 @@ export type SyncStats = {
   written: number;
   skippedNoDims: number;
   skippedBelowConfidence: number;
+  skippedBelowScore: number;
   skippedNotInMapping: number;
   errors: number;
 };
@@ -36,6 +41,7 @@ export async function runSync(cfg: Config, opts: SyncOptions): Promise<SyncStats
     written: 0,
     skippedNoDims: 0,
     skippedBelowConfidence: 0,
+    skippedBelowScore: 0,
     skippedNotInMapping: 0,
     errors: 0,
   };
@@ -45,7 +51,7 @@ export async function runSync(cfg: Config, opts: SyncOptions): Promise<SyncStats
   const source = opts.fromCsv ? `csv:${opts.fromCsv}` : "storis-api";
   console.log(
     `[${mode}] mapping=${opts.mappingPath} entries=${mapping.size} ` +
-      `minConfidence=${opts.minConfidence} source=${source}`,
+      `minConfidence=${opts.minConfidence} minScore=${opts.minScore} source=${source}`,
   );
   console.log(`[${mode}] categories: ${cfg.priorityCategories.join(", ")}`);
 
@@ -72,6 +78,10 @@ export async function runSync(cfg: Config, opts: SyncOptions): Promise<SyncStats
     }
     if (!isAtLeast(entry.confidence, opts.minConfidence)) {
       stats.skippedBelowConfidence += 1;
+      continue;
+    }
+    if (entry.score < opts.minScore) {
+      stats.skippedBelowScore += 1;
       continue;
     }
     stats.matched += 1;

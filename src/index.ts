@@ -16,6 +16,7 @@ type Args = {
   onlyPriority: boolean;
   mappingPath: string;
   minConfidence: Confidence;
+  minScore: number;
   fromCsv?: string;
 };
 
@@ -27,6 +28,7 @@ function parseArgs(argv: string[]): Args {
   let out = "";
   let mappingPath = "mapping/draft-mapping.csv";
   let minConfidence: Confidence = "HIGH";
+  let minScore = 0;
   let fromCsv: string | undefined;
   for (const a of tokens) {
     const m = /^([^=]+)=(.+)$/.exec(a);
@@ -42,6 +44,12 @@ function parseArgs(argv: string[]): Args {
           throw new Error(`--min-confidence must be HIGH|MEDIUM|LOW, got ${v}`);
         }
         minConfidence = v as Confidence;
+      } else if (m[1] === "--min-score") {
+        const n = Number(m[2]);
+        if (!Number.isFinite(n) || n < 0) {
+          throw new Error(`--min-score must be a non-negative number, got ${m[2]}`);
+        }
+        minScore = n;
       } else flags.add(a);
     } else {
       flags.add(a);
@@ -62,6 +70,7 @@ function parseArgs(argv: string[]): Args {
     onlyPriority: !flags.has("--all"),
     mappingPath,
     minConfidence,
+    minScore,
     fromCsv: flags.has("--from-csv") ? "mapping/storis-catalog.csv" : fromCsv,
   };
 }
@@ -118,6 +127,7 @@ async function main(): Promise<void> {
     limit: args.limit,
     mappingPath: args.mappingPath,
     minConfidence: args.minConfidence,
+    minScore: args.minScore,
     fromCsv: args.fromCsv,
   });
   console.log("---");

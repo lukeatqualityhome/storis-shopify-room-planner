@@ -55,10 +55,13 @@ try {
   Invoke-Step "export-storis"  @("src/index.ts", "--export-storis")
   Invoke-Step "export-shopify" @("src/index.ts", "--export-shopify")
   Invoke-Step "fuzzy-match"    @("src/index.ts", "--fuzzy-match")
+  # Production set: HIGH plus top-MEDIUM (score >= 0.7), collision-deduped.
+  # Tunable: lower min-score to include more (lower precision) or raise to tighten.
+  $syncArgs = @("src/index.ts", "--from-csv", "--min-confidence=MEDIUM", "--min-score=0.7")
   if ($DryRun) {
-    Invoke-Step "sync (dry)"   @("src/index.ts", "--from-csv")
+    Invoke-Step "sync (dry)"   $syncArgs
   } else {
-    Invoke-Step "sync (live)"  @("src/index.ts", "--from-csv", "--live")
+    Invoke-Step "sync (live)"  ($syncArgs + "--live")
   }
   Write-Log "weekly-sync OK"
 } catch {

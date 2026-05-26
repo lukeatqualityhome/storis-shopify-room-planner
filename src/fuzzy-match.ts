@@ -254,17 +254,21 @@ export async function fuzzyMatch(opts: FuzzyOptions): Promise<{
   }
 
   // Second pass: collision dedupe. If multiple STORIS rows resolve to the same Shopify
-  // GID at HIGH confidence, we can't tell which is real — demote all of them.
-  const highCountsByGid = new Map<string, number>();
-  for (const r of results) {
-    if (r.confidence === "HIGH" && r.matchGid) {
-      highCountsByGid.set(r.matchGid, (highCountsByGid.get(r.matchGid) ?? 0) + 1);
+  // GID at HIGH or MEDIUM confidence, we can't tell which is real — demote all of them.
+  // Demote HIGH collisions to LOW (severe — we're already confident); MEDIUM collisions
+  // to LOW (likely-wrong duplicates shouldn't slip into auto-sync via score-floor).
+  for (const tier of ["HIGH", "MEDIUM"] as const) {
+    const countsByGid = new Map<string, number>();
+    for (const r of results) {
+      if (r.confidence === tier && r.matchGid) {
+        countsByGid.set(r.matchGid, (countsByGid.get(r.matchGid) ?? 0) + 1);
+      }
     }
-  }
-  for (const r of results) {
-    if (r.confidence === "HIGH" && r.matchGid && (highCountsByGid.get(r.matchGid) ?? 0) > 1) {
-      r.confidence = "LOW";
-      r.method += "+collision";
+    for (const r of results) {
+      if (r.confidence === tier && r.matchGid && (countsByGid.get(r.matchGid) ?? 0) > 1) {
+        r.confidence = "LOW";
+        r.method += "+collision";
+      }
     }
   }
 
