@@ -63,6 +63,11 @@ try {
   } else {
     Invoke-Step "sync (live)"  ($syncArgs + "--live")
   }
+  # Refresh the planner's static catalog (consumed by /pages/room-planner).
+  # Output goes to web/public/, but for it to take effect on the live storefront
+  # someone must re-upload web/public/room-planner-catalog.json to the theme's
+  # Assets folder. The weekly task only refreshes the file locally.
+  Invoke-Step "export-planner-catalog" @("src/index.ts", "--export-planner-catalog")
   Write-Log "weekly-sync OK"
 } catch {
   Write-Log "weekly-sync ERROR: $($_.Exception.Message)"

@@ -5,10 +5,11 @@ import { exportStorisCatalog } from "./export-storis.js";
 import { exportShopifyCatalog } from "./export-shopify.js";
 import { fuzzyMatch } from "./fuzzy-match.js";
 import { ensureMetafieldDefinitions } from "./setup-metafields.js";
+import { exportPlannerCatalog } from "./export-planner-catalog.js";
 import type { Confidence } from "./mapping.js";
 
 type Args = {
-  mode: "sync" | "discover" | "export-storis" | "export-shopify" | "fuzzy-match" | "setup-metafields";
+  mode: "sync" | "discover" | "export-storis" | "export-shopify" | "fuzzy-match" | "setup-metafields" | "export-planner-catalog";
   live: boolean;
   limit?: number;
   top: number;
@@ -61,6 +62,7 @@ function parseArgs(argv: string[]): Args {
   else if (flags.has("--export-shopify")) mode = "export-shopify";
   else if (flags.has("--fuzzy-match")) mode = "fuzzy-match";
   else if (flags.has("--setup-metafields")) mode = "setup-metafields";
+  else if (flags.has("--export-planner-catalog")) mode = "export-planner-catalog";
   return {
     mode,
     live: flags.has("--live"),
@@ -110,6 +112,14 @@ async function main(): Promise<void> {
     console.log(
       `[fuzzy-match] storis=${r.storisCount} shopifyActive=${r.shopifyActiveCount} ` +
         `HIGH=${r.high} MEDIUM=${r.medium} LOW=${r.low} NONE=${r.none} -> ${out}`,
+    );
+    return;
+  }
+  if (args.mode === "export-planner-catalog") {
+    const out = args.out || "web/public/room-planner-catalog.json";
+    const r = await exportPlannerCatalog(cfg, { outPath: out, withImages: true });
+    console.log(
+      `[export-planner-catalog] done. catalog=${r.written} withImages=${r.withImages} -> ${out}`,
     );
     return;
   }

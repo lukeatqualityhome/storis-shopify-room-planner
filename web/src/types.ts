@@ -6,8 +6,8 @@ export type RoomDims = {
 export type CatalogProduct = {
   id: string;
   title: string;
-  handle: string;
   imageUrl: string | null;
+  category: string;     // STORIS category id, drives the fallback icon
   widthIn: number;
   depthIn: number;
 };
@@ -33,7 +33,5 @@ export type LayoutState = {
 };
 
 export type MountConfig = {
-  shopDomain: string;
-  storefrontToken: string;
-  apiVersion: string;
+  catalogUrl: string;
 };

@@ -15,9 +15,7 @@
 
 <div
   id="qhf-room-planner"
-  data-shop-domain="{{ shop.permanent_domain }}"
-  data-storefront-token="{{ section.settings.storefront_token }}"
-  data-api-version="{{ section.settings.api_version | default: '2025-01' }}"
+  data-catalog-url="{{ 'room-planner-catalog.json' | asset_url }}"
   style="min-height: {{ section.settings.min_height | default: 720 }}px;"
 ></div>
 
@@ -30,24 +28,8 @@
   "class": "qhf-room-planner-section",
   "settings": [
     {
-      "type": "header",
-      "content": "Storefront API"
-    },
-    {
-      "type": "text",
-      "id": "storefront_token",
-      "label": "Storefront API access token",
-      "info": "Public Storefront API token from a custom app (Settings → Apps → Develop apps). Must have unauthenticated_read_product_listings scope and unauthenticated_read_metafields for the custom namespace."
-    },
-    {
-      "type": "text",
-      "id": "api_version",
-      "label": "Storefront API version",
-      "default": "2025-01"
-    },
-    {
-      "type": "header",
-      "content": "Layout"
+      "type": "paragraph",
+      "content": "Product catalog is loaded from room-planner-catalog.json in the theme's Assets. Regenerate via 'npx tsx src/index.ts --export-planner-catalog' and re-upload to refresh."
     },
     {
       "type": "range",

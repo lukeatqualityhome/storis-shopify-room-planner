@@ -8,13 +8,11 @@
   </head>
   <body>
     <!-- Dev preview. In Shopify, the mount div is rendered by sections/room-planner.liquid
-         and data-* attributes are supplied from theme settings + env. For local dev, fill in
-         your Storefront domain and public storefront access token below. -->
+         and data-catalog-url is supplied via {{ 'room-planner-catalog.json' | asset_url }}.
+         For local dev, point at the freshly-exported catalog from /public/. -->
     <div
       id="qhf-room-planner"
-      data-shop-domain="quality-home-furniture.myshopify.com"
-      data-storefront-token="REPLACE_WITH_STOREFRONT_API_PUBLIC_TOKEN"
-      data-api-version="2025-01"
+      data-catalog-url="/room-planner-catalog.json"
     ></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

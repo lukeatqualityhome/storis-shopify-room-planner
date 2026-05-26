@@ -1,4 +1,5 @@
 import type { CatalogProduct, PlacedItem, RoomDims } from "./types.js";
+import { iconDataUrlFor } from "./icons.js";
 
 export type UICallbacks = {
   onRoomChange: (dims: RoomDims) => void;
@@ -179,7 +180,7 @@ function buildPaletteItem(product: CatalogProduct, onPick: (p: CatalogProduct) =
   const img = document.createElement("img");
   img.alt = "";
   img.loading = "lazy";
-  img.src = product.imageUrl ?? transparentPixel();
+  img.src = product.imageUrl ?? iconDataUrlFor(product.category);
   item.appendChild(img);
   const info = el("div", "qhf-rp__palette-item-info");
   const title = el("div", "qhf-rp__palette-item-title");
@@ -254,13 +255,3 @@ function fmtIn(inches: number): string {
   return Number.isInteger(inches) ? `${inches}"` : `${inches.toFixed(1)}"`;
 }
 
-let _pixel: string | null = null;
-function transparentPixel(): string {
-  if (_pixel) return _pixel;
-  _pixel =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'><rect width='44' height='44' fill='#eee'/></svg>`,
-    );
-  return _pixel;
-}

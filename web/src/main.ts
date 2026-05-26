@@ -1,6 +1,6 @@
 import "./styles.css";
 import { Planner } from "./planner.js";
-import { StorefrontClient } from "./storefront.js";
+import { CatalogClient } from "./catalog.js";
 import { buildUI } from "./ui.js";
 import { loadLocal, readHash, saveLocal, writeHash } from "./state.js";
 import type { CatalogProduct, MountConfig } from "./types.js";
@@ -16,15 +16,13 @@ type FullUI = ReturnType<typeof buildUI> & {
 };
 
 function readMountConfig(el: HTMLElement): MountConfig {
-  const shopDomain = el.dataset.shopDomain;
-  const storefrontToken = el.dataset.storefrontToken;
-  const apiVersion = el.dataset.apiVersion ?? "2025-01";
-  if (!shopDomain || !storefrontToken || storefrontToken.startsWith("REPLACE_")) {
+  const catalogUrl = el.dataset.catalogUrl;
+  if (!catalogUrl || catalogUrl.startsWith("REPLACE_")) {
     throw new Error(
-      "QHF Room Planner: mount element is missing data-shop-domain or data-storefront-token attributes.",
+      "QHF Room Planner: mount element is missing data-catalog-url attribute.",
     );
   }
-  return { shopDomain, storefrontToken, apiVersion };
+  return { catalogUrl };
 }
 
 function start(): void {
@@ -81,7 +79,6 @@ function start(): void {
     onSelectionChange: (item) => ui.setSelection(item),
   });
 
-  // Load saved layout (URL hash wins over localStorage).
   const restored = readHash() ?? loadLocal();
   if (restored) {
     planner.loadState(restored);
@@ -92,7 +89,6 @@ function start(): void {
     ui.setRoomInputs({ widthIn: 144, depthIn: 120 });
   }
 
-  // Keyboard shortcuts.
   document.addEventListener("keydown", (e) => {
     if (isEditingInput(e.target)) return;
     if (e.key === "Delete" || e.key === "Backspace") {
@@ -104,29 +100,25 @@ function start(): void {
     }
   });
 
-  // Stream products into the palette progressively.
-  const client = new StorefrontClient(cfg);
-  loadProducts(client, ui).catch((err) => {
-    console.error("[qhf-room-planner] product load failed", err);
-    ui.setStatus(`Product load failed: ${err instanceof Error ? err.message : String(err)}`);
-  });
-}
-
-async function loadProducts(client: StorefrontClient, ui: FullUI): Promise<void> {
-  let count = 0;
-  ui.setProducts([]);
-  for await (const batch of client.iteratePlanReadyProducts()) {
-    count += batch.length;
-    ui.appendProducts(batch);
-    ui.setStatus(`Loaded ${count} furniture pieces…`);
-  }
-  if (count === 0) {
-    ui.setStatus(
-      "No products have width/depth metafields yet. Run the STORIS → Shopify sync first.",
-    );
-  } else {
-    ui.setStatus(`Ready. ${count} products available.`);
-  }
+  // Load the static JSON catalog and populate the palette in one shot.
+  const client = new CatalogClient(cfg);
+  client
+    .load()
+    .then((products) => {
+      ui.setProducts(products);
+      if (products.length === 0) {
+        ui.setStatus(
+          "Catalog is empty. Re-run --export-planner-catalog and re-upload room-planner-catalog.json.",
+        );
+      } else {
+        const withImg = products.filter((p) => p.imageUrl).length;
+        ui.setStatus(`Ready. ${products.length} products available (${withImg} with photos).`);
+      }
+    })
+    .catch((err) => {
+      console.error("[qhf-room-planner] catalog load failed", err);
+      ui.setStatus(`Catalog load failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
 }
 
 function isEditingInput(t: EventTarget | null): boolean {
