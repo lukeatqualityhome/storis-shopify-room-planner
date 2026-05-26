@@ -30,10 +30,21 @@ function Write-Log {
 function Invoke-Step {
   param([string]$Label, [string[]]$Arguments)
   Write-Log "START $Label"
-  & "npx" tsx @Arguments 2>&1 | Tee-Object -FilePath $LogFile -Append
-  if ($LASTEXITCODE -ne 0) {
-    Write-Log "FAILED $Label (exit $LASTEXITCODE)"
-    throw "$Label failed (exit $LASTEXITCODE) - see $LogFile"
+  # Native-command stderr piped via 2>&1 becomes ErrorRecord objects in the pipeline.
+  # With $ErrorActionPreference=Stop at module scope, the first stderr line would
+  # throw a terminating error and kill the wrapper. Scope-down to Continue here so
+  # only the exit code drives success/failure for native commands.
+  $prevPref = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    & "npx" tsx @Arguments 2>&1 | Tee-Object -FilePath $LogFile -Append
+    $code = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $prevPref
+  }
+  if ($code -ne 0) {
+    Write-Log "FAILED $Label (exit $code)"
+    throw "$Label failed (exit $code) - see $LogFile"
   }
   Write-Log "OK    $Label"
 }
