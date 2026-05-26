@@ -28,10 +28,9 @@ function Write-Log {
 }
 
 function Invoke-Step {
-  param([string]$Label, [string[]]$Args)
+  param([string]$Label, [string[]]$Arguments)
   Write-Log "START $Label"
-  $exe = "npx"
-  & $exe tsx @Args 2>&1 | Tee-Object -FilePath $LogFile -Append
+  & "npx" tsx @Arguments 2>&1 | Tee-Object -FilePath $LogFile -Append
   if ($LASTEXITCODE -ne 0) {
     Write-Log "FAILED $Label (exit $LASTEXITCODE)"
     throw "$Label failed (exit $LASTEXITCODE) - see $LogFile"
