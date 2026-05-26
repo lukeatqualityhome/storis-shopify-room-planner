@@ -27,7 +27,7 @@ type ShopifyRow = {
 type Indexed = {
   row: ShopifyRow;
   titleTokens: Set<string>;
-  vendorNorm: string;
+  vendorTokens: Set<string>;
   active: boolean;
 };
 
@@ -84,7 +84,8 @@ const STOP_TOKENS = new Set([
   "pc", "pcs", "piece", "pieces", "size", "sizes", "color", "colors",
 ]);
 
-const VENDOR_NOISE = /\b(industries|industry|inc|llc|ltd|corp|corporation|furniture|furnishings?|group|co|company|usa|america|american|the)\b/gi;
+const VENDOR_NOISE = /\b(industries|industry|inc|llc|ltd|corp|corporation|furniture|furnishings?|group|co|company|usa|america|american|the|by|design|signature|home|brand|brands|international|sleep|registered|trademark)\b/gi;
+const VENDOR_TOKEN_MIN_LEN = 4;
 
 export type FuzzyOptions = {
   storisPath: string;
@@ -113,7 +114,7 @@ export async function fuzzyMatch(opts: FuzzyOptions): Promise<{
   const indexed: Indexed[] = shopifyRows.map((row) => ({
     row,
     titleTokens: tokenize(row.title),
-    vendorNorm: normVendor(row.vendor),
+    vendorTokens: vendorTokens(row.vendor),
     active: row.status.toUpperCase() === "ACTIVE",
   }));
   const tokenToIdx = new Map<string, number[]>();
@@ -150,7 +151,6 @@ export async function fuzzyMatch(opts: FuzzyOptions): Promise<{
 
   for (const s of eligibleStoris) {
     const sTokens = tokenize(s.product_description);
-    const sVendor = normVendor(s.vendor_name);
 
     // Candidate set: any Shopify product sharing at least one non-stop token.
     const candIdx = new Set<number>();
@@ -165,6 +165,7 @@ export async function fuzzyMatch(opts: FuzzyOptions): Promise<{
     }
 
     const sFurnType = detectFurnitureType(sTokens);
+    const sVendorTokens = vendorTokens(s.vendor_name);
     type Scored = {
       idx: number;
       score: number;
@@ -184,8 +185,13 @@ export async function fuzzyMatch(opts: FuzzyOptions): Promise<{
       for (const t of sTokens) if (cand.titleTokens.has(t) && isRare(t)) sharedRareTokens.push(t);
       const jaccard = overlap / total;
       const containment = overlap / Math.max(1, sTokens.size);
-      const vendorMatch =
-        sVendor.length >= 3 && cand.vendorNorm.length >= 3 && (sVendor === cand.vendorNorm || sVendor.includes(cand.vendorNorm) || cand.vendorNorm.includes(sVendor));
+      // Tokenize vendor strings and require ≥1 shared significant token. Catches cases
+      // like "ASHLEY FURNITURE IND." ↔ "Signature Design by Ashley®" where neither
+      // string is a substring of the other but they clearly refer to the same vendor.
+      let vendorMatch = false;
+      for (const t of sVendorTokens) {
+        if (cand.vendorTokens.has(t)) { vendorMatch = true; break; }
+      }
       const cFurnType = detectFurnitureType(cand.titleTokens);
       let furnitureTypeMatch: "agree" | "disagree" | "unknown" = "unknown";
       if (sFurnType && cFurnType) furnitureTypeMatch = sFurnType === cFurnType ? "agree" : "disagree";
@@ -412,12 +418,17 @@ function tokenize(s: string): Set<string> {
   return new Set(tokens);
 }
 
-function normVendor(v: string): string {
-  return v
+function vendorTokens(v: string): Set<string> {
+  const normalized = v
     .toLowerCase()
     .replace(VENDOR_NOISE, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+  const out = new Set<string>();
+  for (const tok of normalized.split(/\s+/)) {
+    if (tok.length >= VENDOR_TOKEN_MIN_LEN) out.add(tok);
+  }
+  return out;
 }
 
 function intersect(a: Set<string>, b: Set<string>): number {

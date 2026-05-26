@@ -10,3 +10,4 @@ coverage/
 .storis-swagger.json
 storis-probe.json
 mapping/
+logs/

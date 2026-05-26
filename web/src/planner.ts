@@ -9,6 +9,8 @@ const ITEM_FILL = "#ffffff";
 const ITEM_STROKE = "#888";
 const ITEM_STROKE_SELECTED = "#b89968";
 const LABEL_COLOR = "#333";
+// Snap items to a wall when their bounding-box edge is within this many inches.
+const WALL_SNAP_INCHES = 6;
 
 export type PlannerCallbacks = {
   onChange: (state: LayoutState) => void;
@@ -210,7 +212,16 @@ export class Planner {
       group.x(this.inToPx(item.xIn) + this.roomOriginPx.x);
       group.y(this.inToPx(item.yIn) + this.roomOriginPx.y);
     });
-    group.on("dragend", () => this.emitChange());
+    group.on("dragend", () => {
+      this.snapToWalls(item);
+      const node = this.nodeByInstance.get(item.instanceId);
+      if (node) {
+        node.x(this.inToPx(item.xIn) + this.roomOriginPx.x);
+        node.y(this.inToPx(item.yIn) + this.roomOriginPx.y);
+        this.itemsLayer.batchDraw();
+      }
+      this.emitChange();
+    });
 
     this.updateNodeGeometry(group, item);
   }
@@ -280,6 +291,29 @@ export class Planner {
       x: (pos.x - this.roomOriginPx.x) / this.pxPerIn,
       y: (pos.y - this.roomOriginPx.y) / this.pxPerIn,
     };
+  }
+
+  // Returns a data URL of the current stage. Caller is expected to wire this into
+  // a download link or "Save image" UX. Scaled 2× for retina-quality output.
+  exportPNG(): string {
+    return this.stage.toDataURL({ pixelRatio: 2, mimeType: "image/png" });
+  }
+
+  private snapToWalls(item: PlacedItem): void {
+    const isSideways = item.rotation === 90 || item.rotation === 270;
+    const effW = isSideways ? item.depthIn : item.widthIn;
+    const effD = isSideways ? item.widthIn : item.depthIn;
+    const halfW = effW / 2;
+    const halfD = effD / 2;
+    // Distance from each wall to the item's bounding-box edge.
+    const distLeft = item.xIn - halfW;
+    const distRight = this.room.widthIn - (item.xIn + halfW);
+    const distTop = item.yIn - halfD;
+    const distBottom = this.room.depthIn - (item.yIn + halfD);
+    if (distLeft >= 0 && distLeft < WALL_SNAP_INCHES) item.xIn = halfW;
+    else if (distRight >= 0 && distRight < WALL_SNAP_INCHES) item.xIn = this.room.widthIn - halfW;
+    if (distTop >= 0 && distTop < WALL_SNAP_INCHES) item.yIn = halfD;
+    else if (distBottom >= 0 && distBottom < WALL_SNAP_INCHES) item.yIn = this.room.depthIn - halfD;
   }
 
   private clampToRoom(item: PlacedItem): void {

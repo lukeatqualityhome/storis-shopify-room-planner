@@ -190,6 +190,7 @@
 .qhf-rp__footer {
   grid-area: footer;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   background: var(--qhf-panel);
@@ -200,7 +201,8 @@
 }
 .qhf-rp__footer-status {
   color: var(--qhf-muted);
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 @media (max-width: 720px) {
@@ -212,6 +214,12 @@
       "palette"
       "canvas"
       "footer";
+    padding: 10px;
+    gap: 8px;
   }
   .qhf-rp__palette { max-height: 220px; }
+  .qhf-rp__canvas-wrap { min-height: 360px; }
+  .qhf-rp__room { padding: 8px; }
+  .qhf-rp__btn { padding: 10px 14px; }   /* larger tap targets */
+  .qhf-rp__field input { width: 56px; padding: 8px; font-size: 16px; }
 }

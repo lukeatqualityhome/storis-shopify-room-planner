@@ -61,6 +61,16 @@ function start(): void {
         ui.setStatus(`Copy this URL: ${location.href}`);
       }
     },
+    onExportPNG: () => {
+      const dataUrl = planner.exportPNG();
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `qhf-room-plan-${new Date().toISOString().slice(0, 10)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      ui.setStatus("Saved your room plan as a PNG.");
+    },
   }) as FullUI;
 
   const planner = new Planner(ui.canvasContainer, {

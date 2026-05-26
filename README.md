@@ -94,6 +94,19 @@ docs:
 The normalizer in `normalizeStorisProduct` already tries common casings
 (`Width`, `width`, `W`, `widthIn`); add the real ones once known.
 
+## Scheduled weekly sync
+
+`scripts/weekly-sync.ps1` chains export-storis → export-shopify → fuzzy-match →
+live sync. Register it once with Windows Task Scheduler:
+
+```powershell
+cd C:\QHF\code\storis-api-inventory-to-shopify
+powershell -ExecutionPolicy Bypass -File scripts\register-scheduled-task.ps1
+```
+
+Defaults: Sunday 03:00, runs as the logged-in user. Override with `-DayOfWeek`,
+`-Time`, or `-DryRun` for a no-write test run. Logs land in `logs/`.
+
 ## Phase 3 — Room Planner page
 
 The Konva.js room planner that ships at `/pages/room-planner` lives in

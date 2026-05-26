@@ -7,6 +7,7 @@ export type UICallbacks = {
   onDelete: () => void;
   onClearLayout: () => void;
   onCopyShareLink: () => void;
+  onExportPNG: () => void;
 };
 
 export type UIRefs = {
@@ -59,9 +60,10 @@ export function buildUI(root: HTMLElement, callbacks: UICallbacks): UIRefs {
   const deleteBtn = makeFooterBtn("Delete", "qhf-rp__btn--danger");
   const clearBtn = makeFooterBtn("Clear layout");
   const shareBtn = makeFooterBtn("Copy share link", "qhf-rp__btn--primary");
+  const exportBtn = makeFooterBtn("Save as image");
   rotateBtn.disabled = true;
   deleteBtn.disabled = true;
-  footer.append(status, rotateBtn, deleteBtn, clearBtn, shareBtn);
+  footer.append(status, rotateBtn, deleteBtn, clearBtn, shareBtn, exportBtn);
   root.appendChild(footer);
 
   // Internal state for palette filtering.
@@ -117,6 +119,7 @@ export function buildUI(root: HTMLElement, callbacks: UICallbacks): UIRefs {
     if (confirm("Remove all items from the room?")) callbacks.onClearLayout();
   });
   shareBtn.addEventListener("click", () => callbacks.onCopyShareLink());
+  exportBtn.addEventListener("click", () => callbacks.onExportPNG());
 
   return {
     canvasContainer,
