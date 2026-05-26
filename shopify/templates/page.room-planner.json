@@ -1,0 +1,12 @@
+{
+  "sections": {
+    "main": {
+      "type": "room-planner",
+      "settings": {
+        "api_version": "2025-01",
+        "min_height": 720
+      }
+    }
+  },
+  "order": ["main"]
+}
