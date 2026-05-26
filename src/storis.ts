@@ -57,26 +57,45 @@ export class StorisClient {
   }
 
   private async authedGet<T>(path: string): Promise<T> {
-    const token = await this.getToken();
-    const res = await fetch(`${this.cfg.baseUrl}${path}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    });
-    if (!res.ok) {
-      throw new Error(`STORIS GET ${path} failed: ${res.status} ${await res.text()}`);
-    }
-    return (await res.json()) as T;
+    return this.authedRequest<T>("GET", path);
   }
 
   private async authedPost<T>(path: string): Promise<T> {
+    return this.authedRequest<T>("POST", path);
+  }
+
+  // STORIS occasionally returns a 400 wrapping an upstream uniobjects timeout
+  // (errorCode 15001 / "session has timed out") and 5xx errors during peak load.
+  // Retry with exponential backoff on those; surface other errors immediately.
+  private async authedRequest<T>(method: "GET" | "POST", path: string): Promise<T> {
     const token = await this.getToken();
-    const res = await fetch(`${this.cfg.baseUrl}${path}`, {
-      method: "POST",
+    const url = `${this.cfg.baseUrl}${path}`;
+    const init: RequestInit = {
+      method,
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    });
-    if (!res.ok) {
-      throw new Error(`STORIS POST ${path} failed: ${res.status} ${await res.text()}`);
+    };
+    const MAX_ATTEMPTS = 5;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      let res: Response;
+      try {
+        res = await fetch(url, init);
+      } catch (err) {
+        if (attempt >= MAX_ATTEMPTS - 1) throw err;
+        await sleep(backoffMs(attempt));
+        continue;
+      }
+      if (res.ok) return (await res.json()) as T;
+      const text = await res.text();
+      const transient = isTransient(res.status, text);
+      if (!transient || attempt >= MAX_ATTEMPTS - 1) {
+        throw new Error(`STORIS ${method} ${path} failed: ${res.status} ${text}`);
+      }
+      console.error(
+        `[storis] transient ${res.status} on ${method} ${path}, retry ${attempt + 1}/${MAX_ATTEMPTS - 1}`,
+      );
+      await sleep(backoffMs(attempt));
     }
-    return (await res.json()) as T;
+    throw new Error(`STORIS ${method} ${path}: exhausted retries`);
   }
 
   async startChangesJob(): Promise<string> {
@@ -207,4 +226,22 @@ function* chunk<T>(arr: T[], size: number): Generator<T[]> {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function backoffMs(attempt: number): number {
+  // 1s, 2s, 4s, 8s, 16s
+  return 1000 * 2 ** attempt;
+}
+
+function isTransient(status: number, body: string): boolean {
+  if (status >= 500) return true;
+  if (status === 429) return true;
+  if (status === 408) return true;
+  if (status === 400) {
+    // STORIS wraps some upstream transient errors as 400 with a nested 500.
+    if (/internalservererror|session/i.test(body)) return true;
+    if (/errorcode["\s:]+15001/i.test(body)) return true;
+    if (/timed out|timeout/i.test(body)) return true;
+  }
+  return false;
 }

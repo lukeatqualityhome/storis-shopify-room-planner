@@ -13,12 +13,13 @@ const Env = z.object({
   PRIORITY_CATEGORIES: z.string().optional(),
 });
 
-// STORIS category IDs covering the room-planner-relevant catalog (~17.3k products
+// STORIS category IDs covering the room-planner-relevant catalog (~21.7k products
 // out of 26.5k). Matched case-insensitively against ProductData.category.categoryId
 // in src/sync.ts. Confirmed by the discovery scan on 2026-05-25.
 const DEFAULT_PRIORITY_CATEGORIES = [
   "UPHOLS",   // UPHOLSTERY — sofas, loveseats, sectionals (~4,524)
   "BEDRM",    // BEDROOM FURNITURE — beds, dressers, nightstands (~4,718)
+  "DEF",      // DEFAULT CATEGORY — mis-categorized real furniture (~4,903, 86% have dims)
   "DINE",     // DINING — tables, chairs, hutches (~1,642)
   "ACCENT",   // ACCENTS — accent chairs, accent tables (~1,526)
   "RECUPH",   // RECLINE UPHOLSTERY (~1,415)
